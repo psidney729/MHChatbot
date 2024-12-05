@@ -33,10 +33,13 @@ def add_embedding(dataframe, chunk_size = 100):
 
 ## DB connection
 
-conn = psycopg2.connect(f"host={settings.POSTGRES_HOST} 
-                        dbname={settings.POSTGRES_DB} 
-                        user={settings.POSTGRES_USER} 
-                        password={settings.POSTGRES_PASSWORD}")
+conn = psycopg2.connect(
+    f"host={settings.POSTGRES_HOST} "
+    f"dbname={settings.POSTGRES_DB} "
+    f"user={settings.POSTGRES_USER} "
+    f"password={settings.POSTGRES_PASSWORD}"
+)
+
 cur = conn.cursor()
 
 def create_table():
