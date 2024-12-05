@@ -42,7 +42,7 @@ async def semantic_search(
     """
     Semantic Search
     """
-    response = semanticsearch(query)
+    response = await semanticsearch(query)
     return {"response": response}
 
 

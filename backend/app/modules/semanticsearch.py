@@ -3,18 +3,26 @@
 
 import psycopg2
 from ..config import settings
-from openai import OpenAI
+from openai import AsyncOpenAI
 from langchain_openai import ChatOpenAI
 
 conn = psycopg2.connect(f"host={settings.POSTGRES_HOST} dbname={settings.POSTGRES_DB} user={settings.POSTGRES_USER} password={settings.POSTGRES_PASSWORD}")
 cur = conn.cursor()
 
+
+async def aget_embedding_one(text, client):
+    response = await client.embeddings.create(
+        model="text-embedding-ada-002",
+        input=text
+    )
+    return response.data[0].embedding
+
 # Define llm
 llm = ChatOpenAI(model="gpt-4o")
-client = OpenAI()
+client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
-def semanticsearch(query):
-    query_vector = client.embeddings.create(input=query, model="text-embedding-ada-002").data[0].embedding
+async def semanticsearch(query):
+    query_vector = await aget_embedding_one(query, client)
     cur.execute(f"""
         SELECT id, context, response, semantic_vector <=> '{query_vector}' as distance
         FROM conversationdb
