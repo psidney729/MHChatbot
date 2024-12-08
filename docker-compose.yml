@@ -1,0 +1,65 @@
+services:
+
+  db:
+    image: postgres:latest
+    volumes:
+      - app-db-data:/data/db
+    # env_file:
+    #   - .env
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      - POSTGRES_HOST=localhost
+      - POSTGRES_DB=mhchatbot
+      - POSTGRES_USERNAME=postgres
+      - POSTGRES_PASSWORD=dnflrkwjd
+
+  backend:
+    image: 'mhc-back:1.0'
+    depends_on:
+      - db
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-true}
+        BACKEND_ENV: dev
+    command: bash -c "./run-backend.bat"
+    labels:
+      - traefik.enable=true
+      # - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.rule=PathPrefix(`/api`) || PathPrefix(`/docs`) || PathPrefix(`/redoc`)
+      # - traefik.http.services.${STACK_NAME?Variable not set}-backend.loadbalancer.server.port=80
+
+  frontend:
+    image: 'mhc-front:1.0'
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.development
+      args:
+        FRONTEND_ENV: dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app # Synchronise docker container with local change
+      - /app/node_modules # Avoid re-copying local node_modules. Cache in volume. See https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+    # env_file:
+    #   - .env
+    command: npm run dev -- --host
+    labels:
+      - traefik.enable=true
+      # - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.rule=PathPrefix(`/`)
+      # - traefik.http.services.${STACK_NAME?Variable not set}-frontend.loadbalancer.server.port=5173
+
+volumes:
+  app-db-data:
+
+networks:
+  traefik-public:
+    # Allow setting it to false for testing
+    external: ${TRAEFIK_PUBLIC_NETWORK_IS_EXTERNAL-true}
