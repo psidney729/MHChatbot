@@ -2,12 +2,11 @@
 This module contains the functions to process the conversationDB and store it in the database.
 """
 
-
-import pandas as pd
 import json
-from get_embedding_openai import get_embedding_openai
-import psycopg2
-from ..config.config import settings
+import pandas as pd
+from ..utils import openai_embedding_list
+from ..utils import postgres_userpass_conn_sync
+from ..config import settings
 
 
 ## Get DataFrame
@@ -24,23 +23,14 @@ def get_data_frame():
     return df
 
 def add_embedding(dataframe, chunk_size = 100):
-    
-    embeddings = get_embedding_openai(dataframe["context"].tolist(), chunk_size)
+    embeddings = openai_embedding_list(dataframe["context"].tolist(), chunk_size)
     dataframe["semantic_vector"] = embeddings
 
     return dataframe
 
 
 ## DB connection
-
-conn = psycopg2.connect(
-    f"host={settings.POSTGRES_HOST} "
-    f"dbname={settings.POSTGRES_DB} "
-    f"user={settings.POSTGRES_USER} "
-    f"password={settings.POSTGRES_PASSWORD}"
-)
-
-cur = conn.cursor()
+conn, cur = postgres_userpass_conn_sync()
 
 def create_table():
     try:
@@ -58,7 +48,7 @@ def create_table():
         print(f"Error creating table: {e}")
 
 
-def insert_data(dataframe):
+def insert_data(dataframe: pd.DataFrame):
     try:
         for index, row in dataframe.iterrows():
             cur.execute("""

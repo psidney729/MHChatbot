@@ -14,13 +14,13 @@ import {
   Container,
 } from '@mui/material'
 import { useSnackBar } from '../contexts/snackbar'
-import moduleService from "../services/modules.service"
+import moduleService from "../services/service.service"
 
 interface SearchResult {
-  0: number
-  1: string
-  2: string
-  3: number
+  id: number
+  context: string
+  response: string
+  similarity: number
 }
 
 export default function SemanticSearch() {
@@ -88,11 +88,11 @@ export default function SemanticSearch() {
             </TableHead>
             <TableBody>
               {results.map((row) => (
-                <TableRow key={row[0]}>
-                  <TableCell>{row[0]}</TableCell>
-                  <TableCell>{row[1]}</TableCell>
-                  <TableCell>{row[2]}</TableCell>
-                  <TableCell>{1 - row[3]}</TableCell>
+                <TableRow key={row["id"]}>
+                  <TableCell>{row["id"]}</TableCell>
+                  <TableCell>{row["context"]}</TableCell>
+                  <TableCell>{row["response"]}</TableCell>
+                  <TableCell>{1 - row["similarity"]}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

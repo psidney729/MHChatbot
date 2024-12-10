@@ -11,7 +11,7 @@ import {
   Chip,
 } from '@mui/material'
 import { useSnackBar } from '../contexts/snackbar'
-import moduleService from '../services/modules.service'
+import moduleService from '../services/service.service'
 
 interface PredictionResult {
   problem_type: string
@@ -21,7 +21,7 @@ interface PredictionResult {
   recommended_approach: string
 }
 
-export default function MLClassification() {
+export default function MLclassification() {
   const [patientDescription, setPatientDescription] = useState('')
   const [predictions, setPredictions] = useState<PredictionResult | null>(null)
   const [loading, setLoading] = useState(false)

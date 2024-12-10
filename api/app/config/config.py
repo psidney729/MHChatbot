@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     # a stable SECRET_KEY is prefered.
 
     # SECRET_KEY: str = secrets.token_urlsafe(32)
-    SECRET_KEY: str = "temporarysecretkey"
+    SECRET_KEY: str = "mhchatbotsecretkey"
 
     # database configurations
     POSTGRES_HOST: str
@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     POSTGRES_DB: str
 
     # 60 minutes * 24 hours * 8 days = 8 days
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 2
     SERVER_NAME: str
     SERVER_HOST: AnyHttpUrl
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
@@ -33,7 +33,12 @@ class Settings(BaseSettings):
     FIRST_SUPERUSER: EmailStr
     FIRST_SUPERUSER_PASSWORD: str
 
+    SUPABASE_URL: str
+    SUPABASE_KEY: str
+
     OPENAI_API_KEY: str
+
+
 
     VITE_BACKEND_API_URL: AnyHttpUrl
 

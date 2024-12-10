@@ -8,9 +8,9 @@ import Register from './routes/register'
 import Root from './routes/root'
 import SSOLogin, { loader as ssoLoader } from './routes/sso.login'
 import Users, { loader as usersLoader } from './routes/users'
-import ChatbotLLM from './routes/chatbotllm'
-import MLClassification from './routes/mlclassification'
-import SemanticSearch from './routes/semanticsearch'
+import LLMchatbot from './routes/llm'
+import MLclassification from './routes/ml'
+import SemanticSearch from './routes/ss'
 
 export const routes = [
   {
@@ -31,15 +31,15 @@ export const routes = [
             loader: usersLoader,
           },
           {
-            path: 'chatbotllm',
-            element: <ChatbotLLM />,
+            path: 'llm',
+            element: <LLMchatbot />,
           },
           {
-            path: 'mlclassification',
-            element: <MLClassification />,
+            path: 'ml',
+            element: <MLclassification />,
           },
           {
-            path: 'semanticsearch',
+            path: 'ss',
             element: <SemanticSearch />,
           }
         ],

@@ -46,13 +46,13 @@ export default function TopMenuBar() {
         </Typography>
 
         <Box sx={{ display: 'flex', flexGrow: 1, justifyContent: 'center', gap: 2 }}>
-          <Button component={NavLink} to='/chatbotllm' sx={{ color: '#fff' }}>
+          <Button component={NavLink} to='/llm' sx={{ color: '#fff' }}>
             Chatbot
           </Button>
-          <Button component={NavLink} to='/semanticsearch' sx={{ color: '#fff' }}>
+          <Button component={NavLink} to='/ss' sx={{ color: '#fff' }}>
             Semantic Search
           </Button>
-          <Button component={NavLink} to='/mlclassification' sx={{ color: '#fff' }}>
+          <Button component={NavLink} to='/ml' sx={{ color: '#fff' }}>
             ML Classification
           </Button>
         </Box>

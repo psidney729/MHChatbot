@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, TextField, Button, Typography, Paper, Avatar, Container } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import moduleService from '../services/modules.service';
+import moduleService from '../services/service.service';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
@@ -27,7 +27,7 @@ const MessageBubble = styled(Paper)(({ theme }) => ({
   },
 }));
 
-const ChatbotLLM: React.FC = () => {
+const LLMchatbot: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -38,14 +38,14 @@ const ChatbotLLM: React.FC = () => {
         const history = await moduleService.get_chat_history();
         const formattedHistory: Message[] = [];
         
-        history.forEach((conversation: string[]) => {
+        history.forEach((conversation: any) => {
           formattedHistory.push({
             role: 'user',
-            content: conversation[0]
+            content: conversation["user_message"]
           });
           formattedHistory.push({
             role: 'assistant',
-            content: conversation[1]
+            content: conversation["llm_message"]
           });
         });
         
@@ -157,4 +157,4 @@ const ChatbotLLM: React.FC = () => {
   );
 };
 
-export default ChatbotLLM;
+export default LLMchatbot;

@@ -6,7 +6,7 @@
   "scripts": {
     "fastapi-dev": "pip3 install -r requirements.txt && python3 -m uvicorn api.index:app --reload",
     "react-dev": "vite",
-    "dev": "concurrently \"npm run react-dev\" \"npm run fastapi-dev\"",
+    "dev": "concurrently \"npm run fastapi-dev\" \"npm run react-dev\"",
     "start": "npm run start",
     "build": "tsc && vite build",
     "preview": "vite preview",

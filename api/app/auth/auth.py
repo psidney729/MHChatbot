@@ -8,24 +8,14 @@ from fastapi.security import OAuth2, OAuth2PasswordBearer
 from fastapi.security.utils import get_authorization_scheme_param
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from sqlalchemy import select
 
 from ..schemas import TokenPayload
 from ..models import User
 from ..config import settings
+from ..utils import postgres_userpass_conn, supabase_urlkey_conn
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
-
-engine = create_async_engine(
-    f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}",
-    echo=False,
-)
-
-async_session = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
-)
-
+supabase_client = supabase_urlkey_conn()
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 120  # 30 minutes
 ALGORITHM = "HS256"
@@ -90,17 +80,21 @@ def verify_password(password: str, hashed_pass: str) -> bool:
 
 
 async def authenticate_user(email: str, password: str):
-    # Using SQLAlchemy async session
-    async with async_session() as session:
-        query = select(User).where(User.email == email)
-        result = await session.execute(query)
-        user = result.scalar_one_or_none()
-        
-        if not user:
+    try:
+        user_response = supabase_client.from_('users').select('*').eq('email', email).execute()
+        user_data = user_response.data
+
+        if not user_data:
             return False
+
+        user = User(**user_data[0])
         if not verify_password(password, user.hashed_password):
             return False
+
         return user
+    except Exception as e:
+        print(f"Error retrieving user: {str(e)}")
+        return False
 
 
 
@@ -142,12 +136,15 @@ async def _get_current_user(token):
         token_data = TokenPayload(uuid=userid)
     except JWTError:
         raise credentials_exception
-    async with async_session() as session:
-        query = select(User).where(User.uuid == token_data.uuid)
-        result = await session.execute(query)
-        user = result.scalar_one_or_none()
-    if user is None:
+    try:
+        user_response = supabase_client.from_('users').select('*').eq('uuid', str(token_data.uuid)).execute()
+        user_data = user_response.data
+    except Exception as e:
+        print(f"Error retrieving user: {str(e)}")
         raise credentials_exception
+    if not user_data:
+        raise credentials_exception
+    user = User(**user_data[0])
     return user
 
 

@@ -1,9 +1,6 @@
-from typing import Optional
-from uuid import UUID, uuid4
 from sqlalchemy import Boolean, Column, String, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.ext.declarative import declarative_base
-from .users import User
 from sqlalchemy.orm import relationship
 
 Base = declarative_base()

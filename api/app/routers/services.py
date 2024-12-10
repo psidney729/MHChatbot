@@ -1,19 +1,14 @@
-from datetime import timedelta
-from typing import Any
+from fastapi import APIRouter, Body, Depends
 
-from fastapi import APIRouter, HTTPException, Body, Depends
-from pydantic.networks import EmailStr
 from ..auth import get_current_active_user
-
-
 from ..models import User
-from ..config import settings
-from ..modules.chatbotllm import chatbotllm, fetch_all_history
-from ..modules.semanticsearch import semanticsearch
+from ..services import new_chat, fetch_all_history, semanticsearch
+
 
 router = APIRouter()
 
-@router.post("/chatbotllm")
+
+@router.post("/llm")
 async def chatbot_llm(
     user_message: str = Body(...),
     current_user: User = Depends(get_current_active_user),
@@ -21,7 +16,7 @@ async def chatbot_llm(
     """
     Chat with Medical LLM (domain-specific Model)
     """
-    response = chatbotllm(user_message, current_user.uuid)
+    response = new_chat(user_message, current_user.uuid)
     return {"response": response}
 
 @router.get("/chathistory")
@@ -35,18 +30,18 @@ async def chat_history(
     return {"response": response}
 
 
-@router.post("/semanticsearch")
+@router.post("/ss")
 async def semantic_search(
     query: str = Body(...)
 ):
     """
     Semantic Search
     """
-    response = await semanticsearch(query)
+    response = semanticsearch(query)
     return {"response": response}
 
 
-@router.post("/mlclassification")
+@router.post("/ml")
 async def classification_ml(
     query: str = Body(...)
 ):
@@ -54,5 +49,4 @@ async def classification_ml(
     Classification using Machine Learning Model
     """
     pass
-
 

@@ -1,32 +1,17 @@
+from fastapi import APIRouter, HTTPException, Body, Depends
 from typing import List, Optional, Any
 from uuid import UUID
-
-from fastapi import APIRouter, HTTPException, Body, Depends
 from pydantic.networks import EmailStr
-from beanie.exceptions import RevisionIdWasChanged
-
-from ..auth.auth import (
-    get_hashed_password,
-    get_current_active_superuser,
-    get_current_active_user,
-)
-from .. import schemas, models
-from ..config.config import settings
-
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
-engine = create_async_engine(
-    f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}",
-    echo=False,
-)
 
-async_session = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
-)
+from .. import schemas, models
+from ..auth import get_hashed_password, get_current_active_superuser, get_current_active_user
+from ..utils import postgres_userpass_conn, supabase_urlkey_conn
 
+
+supabase_client = supabase_urlkey_conn()
 router = APIRouter()
 
 
@@ -41,23 +26,21 @@ async def register_user(
     Register a new user.
     """
     hashed_password = get_hashed_password(password)
-    user = models.User(
-        email=email,
-        hashed_password=hashed_password,
-        first_name=first_name,
-        last_name=last_name,
-    )
-    async with async_session() as session:
-        session.add(user)
-        try:
-            await session.commit()
-            return user
-        except IntegrityError:
-            await session.rollback()
+    try:
+        response = supabase_client.from_("users").insert({
+            "email": email,
+            "hashed_password": hashed_password,
+            "first_name": first_name,
+            "last_name": last_name,
+        }).execute()
+        if response.error:
             raise HTTPException(
                 status_code=400,
                 detail="User with that email already exists."
             )
+        return response.data[0]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("", response_model=List[schemas.User])
@@ -66,14 +49,11 @@ async def get_users(
     offset: Optional[int] = 0,
     admin_user: models.User = Depends(get_current_active_superuser),
 ):
-    async with async_session() as session:
-        result = await session.execute(
-            select(models.User)
-            .offset(offset)
-            .limit(limit)
-        )
-        users = result.scalars().all()
-        return users
+    try:
+        response = supabase_client.from_("users").select("*").range(offset, offset + limit - 1).execute()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Error fetching users")
+    return response.data
 
 
 @router.get("/me", response_model=schemas.User)
@@ -94,44 +74,28 @@ async def update_profile(
     """
     Update current user.
     """
-    async with async_session() as session:
-        update_data = updateschema.model_dump(
-            exclude={"is_active", "is_superuser"}, exclude_unset=True
-        )
-        
-        if "password" in update_data:
-            update_data["hashed_password"] = get_hashed_password(update_data["password"])
-            del update_data["password"]
-            
-        try:
-            stmt = (
-                update(models.User)
-                .where(models.User.uuid == current_user.uuid)
-                .values(**update_data)
-                .returning(models.User)
-            )
-            result = await session.execute(stmt)
-            updated_user = result.scalar_one()
-            await session.commit()
-            return updated_user
-            
-        except IntegrityError:
-            await session.rollback()
+    try:
+        response = supabase_client.from_("users").update(
+            updateschema.dict(exclude={"is_active", "is_superuser"}, exclude_unset=True)
+        ).eq("uuid", current_user.uuid).execute()
+
+        if response.status_code != 200:
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail="User with that email already exists."
             )
+        return response.data[0]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/me", response_model=schemas.User)
 async def delete_me(user: models.User = Depends(get_current_active_user)):
-    async with async_session() as session:
-        stmt = select(models.User).where(models.User.uuid == user.uuid)
-        result = await session.execute(stmt)
-        deluser = result.scalar_one()
-        await session.delete(deluser)
-        await session.commit()
-        return user
+    response = supabase_client.from_("users").delete().eq("uuid", user.uuid).execute()
+    if response.error:
+        raise HTTPException(status_code=400, detail="User not found")
+    return user
 
 
 @router.patch("/{userid}", response_model=schemas.User)
@@ -154,83 +118,33 @@ async def update_user(
     current_user : models.User, optional
         the current superuser, by default Depends(get_current_active_superuser)
     """
-    async with async_session() as session:
-        result = await session.execute(
-            select(models.User).where(models.User.uuid == userid)
+    response = supabase_client.from_("users").update(
+        update.model_dump(exclude_unset=True)
+    ).eq("uuid", userid).execute()
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=400,
+            detail="User with that email already exists."
         )
-        user = result.scalar_one_or_none()
-        
-        if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
-            
-        update_data = update.model_dump(exclude_unset=True)
-        if update.password is not None:
-            update_data["hashed_password"] = get_hashed_password(update.password)
-            del update_data["password"]
-            
-        try:
-            stmt = (
-                update(models.User)
-                .where(models.User.uuid == userid)
-                .values(**update_data)
-                .returning(models.User)
-            )
-            result = await session.execute(stmt)
-            updated_user = result.scalar_one()
-            await session.commit()
-            return updated_user
-            
-        except IntegrityError:
-            await session.rollback()
-            raise HTTPException(
-                status_code=400,
-                detail="User with that email already exists."
-            )
+    return response.data[0]
 
 
 @router.get("/{userid}", response_model=schemas.User)
 async def get_user(
     userid: UUID, admin_user: models.User = Depends(get_current_active_superuser)
 ):
-    """
-    Get User Info
-
-    ** Restricted to superuser **
-
-    Parameters
-    ----------
-    userid : UUID
-        the user's UUID
-
-    Returns
-    -------
-    schemas.User
-        User info
-    """
-    async with async_session() as session:
-        result = await session.execute(
-            select(models.User).where(models.User.uuid == userid)
-        )
-        user = result.scalar_one_or_none()
-        
-        if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
-            
-        return user
+    response = supabase_client.from_("users").select("*").eq("uuid", userid).execute()
+    if response.status_code != 200:
+        raise HTTPException(status_code=404, detail="User not found")
+    return response.data[0]
 
 
 @router.delete("/{userid}", response_model=schemas.User)
 async def delete_user(
     userid: UUID, admin_user: models.User = Depends(get_current_active_superuser)
 ):
-    async with async_session() as session:
-        stmt = select(models.User).where(models.User.uuid == userid)
-        result = await session.execute(stmt)
-        user = result.scalar_one_or_none()
-        
-        if user is None:
-            raise HTTPException(status_code=404, detail="User not found")
-            
-        await session.delete(user)
-        await session.commit()
-        return user
+    response = supabase_client.from_("users").delete().eq("uuid", userid).execute()
+    if response.status_code != 200:
+        raise HTTPException(status_code=404, detail="User not found")
+    return response.data[0]
+

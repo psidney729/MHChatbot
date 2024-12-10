@@ -1,20 +1,15 @@
 from datetime import timedelta
 from typing import Any
-
-from .. import models, schemas
-from ..auth.auth import (
-    authenticate_user,
-    create_access_token,
-    get_current_user,
-    get_current_user_from_cookie,
-)
-from ..config.config import settings
-from starlette.requests import Request
-from starlette.responses import RedirectResponse
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 
+from .. import models, schemas
+from ..auth import authenticate_user, create_access_token, get_current_user, get_current_user_from_cookie
+from ..config import settings
+
+
 router = APIRouter()
+
 
 @router.post("/access-token", response_model=schemas.Token)
 async def login_access_token(form_data: OAuth2PasswordRequestForm = Depends()) -> Any:

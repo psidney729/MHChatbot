@@ -1,11 +1,11 @@
 from fastapi import APIRouter
 
-from . import login, users, solutions
+from . import login, users, services
 
 api_router = APIRouter()
 api_router.include_router(login.router, prefix="/login", tags=["login"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
-api_router.include_router(solutions.router, prefix="/modules", tags=["modules"])
+api_router.include_router(services.router, prefix="/services", tags=["services"])
 
 
 @api_router.get("/")
