@@ -1,2 +1,11 @@
 [build.environment]
   PYTHON_VERSION = "3.10"
+
+[build]
+  command = "npm run build" # Command to build the project
+  publish = "dist"          # Directory where the built React app resides
+
+[dev]
+  command = "npm run preview" # Command to preview both the React and FastAPI
+  port = 4173                # The port Vite's preview server runs on (default is 4173)
+  framework = "vite"         # Specifies Vite as the framework
