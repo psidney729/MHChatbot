@@ -8,7 +8,7 @@
     "react-dev": "vite",
     "dev": "concurrently \"npm run fastapi-dev\" \"npm run react-dev\"",
     "build": "tsc && vite build",
-    "preview": "concurrently \"vite preview\" \"npm run fastapi-dev\"",
+    "start": "concurrently \"vite preview\" \"npm run fastapi-dev\"",
     "test": "vitest",
     "coverage": "vitest run --coverage",
     "lint": "npx eslint src",
